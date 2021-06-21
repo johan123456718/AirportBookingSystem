@@ -111,6 +111,13 @@ public class FlightPane extends VBox{
         manageMenu.getItems().addAll(addItem, addRatingItem, addAuthorItem);
         
         
+        Menu accountMenu = new Menu("Account");
+        MenuItem loginItem = new MenuItem("Login");
+        MenuItem signInItem = new MenuItem("Sign in");
+        MenuItem reservationItem = new MenuItem("Reservations");
+        reservationItem.setVisible(false);
+        accountMenu.getItems().addAll(loginItem, signInItem, reservationItem);
+        
         connectItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
@@ -118,8 +125,16 @@ public class FlightPane extends VBox{
             }
         });
         
+        disconnectItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                controller.disconnect();
+                flightsInTable.clear();
+            }
+        });
+        
         menuBar = new MenuBar();
-        menuBar.getMenus().addAll(fileMenu, searchMenu, manageMenu);
+        menuBar.getMenus().addAll(fileMenu, searchMenu, manageMenu, accountMenu);
     }
     
     public void displayFlights(List<Flight> flights) {

@@ -51,4 +51,18 @@ public class Controller {
             }
         }.start();
     }
+    
+    
+    protected void disconnect(){
+        new Thread(){
+            @Override
+            public void run(){
+                try{
+                    airplaneDb.disconnect();
+                }catch (IOException | SQLException e) {
+            
+                }
+            }
+        }.start();
+    }
 }
