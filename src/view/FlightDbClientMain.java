@@ -23,13 +23,13 @@ public class FlightDbClientMain  extends Application {
     @Override
     public void start(Stage primaryStage){
 
-        AirplaneMySQLDb booksDb = new AirplaneMySQLDb();
+        AirplaneMySQLDb airplaneDb = new AirplaneMySQLDb();
 
-        FlightPane root = new FlightPane();
+        FlightPane root = new FlightPane(airplaneDb);
 
-        Scene scene = new Scene(root, 800, 600);
+        Scene scene = new Scene(root, 1200, 600);
 
-        primaryStage.setTitle("Books Database Client");
+        primaryStage.setTitle("Airport reservation system");
 
         EventHandler closeHandler = new EventHandler<WindowEvent>() {
             @Override
@@ -39,7 +39,7 @@ public class FlightDbClientMain  extends Application {
                 alert.showAndWait();
                 if (alert.getResult() == ButtonType.OK) {
                     try {
-                        booksDb.disconnect();
+                        airplaneDb.disconnect();
                         primaryStage.close();
                     } catch (Exception e) {}
                 }
@@ -47,6 +47,7 @@ public class FlightDbClientMain  extends Application {
         };
         primaryStage.setOnCloseRequest(closeHandler);
         primaryStage.setScene(scene);
+        primaryStage.setResizable(false);
         primaryStage.show();
     }
 
