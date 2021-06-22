@@ -11,12 +11,13 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import model.bo.Flight;
+import model.bo.Passenger;
 
 /**
  *
@@ -66,7 +67,7 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
             LocalDateTime dT = LocalDateTime.parse(tmp, formatter);
             tmp = arrivalTime.toString().replace("T", " ");
             LocalDateTime aT = LocalDateTime.parse(tmp, formatter);
-            
+
             insertFlight = con.prepareStatement(sqlQuery);
             insertFlight.setInt(1, flightId);
             insertFlight.setInt(2, airlineId);
@@ -105,7 +106,7 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
         try {
             selectAll = con.prepareStatement(sql);
             rs = selectAll.executeQuery();
-            result = ConvertToFlight(rs);
+            result = convertToFlight(rs);
             return result;
         } finally {
             if (selectAll != null) {
@@ -117,9 +118,67 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
         }
     }
 
-    private List<Flight> ConvertToFlight(ResultSet rs) throws SQLException {
+    @Override
+    public List<Passenger> getAllPassengers() throws SQLException, IOException {
+        List<Passenger> result = new ArrayList<>();
+
+        String sql = "SELECT * "
+                + "FROM PASSENGER_PROFILE";
+        PreparedStatement selectAll = null;
+        ResultSet rs = null;
+        try {
+            selectAll = con.prepareStatement(sql);
+            rs = selectAll.executeQuery();
+            result = convertToPassengers(rs);
+            return result;
+        } finally {
+            if (selectAll != null) {
+                selectAll.close();
+            }
+            if (rs != null) {
+                rs.close();
+            }
+        }
+    }
+
+    @Override
+    public void addPassenger(String userName, String password, String firstName, String lastName, String address, String telNo, String email) throws IOException, SQLException {
+        PreparedStatement insertPassenger = null;
+        ResultSet rs = null;
+        try {
+            con.setAutoCommit(false);
+
+            String sqlQuery = "INSERT INTO PASSENGER_PROFILE "
+                    + "(username, password, first_name, last_name, address, tel_no, email_id) "
+                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+            insertPassenger = con.prepareStatement(sqlQuery);
+            insertPassenger.setString(1, userName);
+            insertPassenger.setString(2, password);
+            insertPassenger.setString(3, firstName);
+            insertPassenger.setString(4, lastName);
+            insertPassenger.setString(5, address);
+            insertPassenger.setString(6, telNo);
+            insertPassenger.setString(7, email);
+            insertPassenger.execute();
+            con.commit();
+        } catch (SQLException e) {
+            con.rollback();
+            throw e;
+        } finally {
+            if (insertPassenger != null) {
+                insertPassenger.close();
+            }
+            if (rs != null) {
+                rs.close();
+            }
+            con.setAutoCommit(true);
+        }
+    }
+
+    private List<Flight> convertToFlight(ResultSet rs) throws SQLException {
         List<Flight> result = new ArrayList<>();
-        //DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS Z");
+
         while (rs.next()) {
 
             int flightId = rs.getInt("flight_id");
@@ -127,7 +186,7 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
             String airlineName = rs.getString("airline_name");
             String fromLocation = rs.getString("from_location");
             String toLocation = rs.getString("to_location");
-            
+
             LocalDateTime departureTime = rs.getObject("departure_time", LocalDateTime.class);
             LocalDateTime arrivalTime = rs.getObject("arrival_time", LocalDateTime.class);
 
@@ -156,4 +215,36 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
         return result;
     }
 
+    private List<Passenger> convertToPassengers(ResultSet rs) throws SQLException {
+        List<Passenger> result = new ArrayList<>();
+
+        while (rs.next()) {
+            String userName = rs.getString("username");
+            String password = rs.getString("password");
+            String firstName = rs.getString("first_name");
+            String lastName = rs.getString("last_name");
+            String address = rs.getString("address");
+            String telNo = rs.getString("tel_no");
+            String email = rs.getString("email_id");
+
+            boolean doPassengerExist = false;
+
+            if (result.size() > 0) {
+                if (result.get(result.size() - 1).getUserName().equals(userName)) {
+                    doPassengerExist = true;
+                }
+            }
+
+            if (!doPassengerExist) {
+                result.add(new Passenger.PassengerBuilder(userName, password)
+                        .firstName(firstName)
+                        .lastName(lastName)
+                        .address(address)
+                        .telNo(telNo)
+                        .email(email)
+                        .build());
+            }
+        }
+        return result;
+    }
 }

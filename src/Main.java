@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import model.bo.Flight;
+import model.bo.Passenger;
 import model.db.AirplaneMySQLDb;
 
 /**
@@ -43,8 +44,19 @@ public class Main {
             
             System.out.println(flight);
             
-            db.addFlight(flight.getFlightId(), flight.getAirlineId(), flight.getDuration(), flight.getTotalSeats(), flight.getAirlineName(), 
-                    flight.getFromLocation(), flight.getToLocation(), flight.getDepartureTime(), flight.getArrivalTime());
+            Passenger passenger = new Passenger.PassengerBuilder("johan", "abc123")
+                    .firstName("Johan")
+                    .lastName("Bravo")
+                    .address("Rymdgatan 40")
+                    .telNo("0765596196")
+                    .email("axel1234516@hotmail.com")
+                    .build();
+            
+            System.out.println(passenger);
+                    
+            
+            /*db.addFlight(flight.getFlightId(), flight.getAirlineId(), flight.getDuration(), flight.getTotalSeats(), flight.getAirlineName(), 
+                    flight.getFromLocation(), flight.getToLocation(), flight.getDepartureTime(), flight.getArrivalTime());*/
             db.disconnect();
         }
     }
