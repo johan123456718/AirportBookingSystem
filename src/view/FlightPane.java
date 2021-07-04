@@ -125,6 +125,10 @@ public class FlightPane extends VBox {
         totalSeatsCol.setCellValueFactory(new PropertyValueFactory<>("totalSeats"));
         flightTable.setItems(flightsInTable);
 
+        ticketSelection(controller);
+    }
+
+    private void ticketSelection(Controller controller){
         flightTable.setRowFactory(tv -> {
             TableRow<Flight> row = new TableRow<>();
             row.setOnMouseClicked(event -> {
@@ -138,7 +142,7 @@ public class FlightPane extends VBox {
                                     .status("Purchased")
                                     .build();
                             controller.registerTicket(ticket);
-                            System.out.println(ticket);
+                            showAlertAndWait("Reservation successful", Alert.AlertType.INFORMATION);
                         }
                     } else {
                         showAlertAndWait("You need to login!", Alert.AlertType.ERROR);
@@ -148,7 +152,7 @@ public class FlightPane extends VBox {
             return row;
         });
     }
-
+    
     private void initMenus(Controller controller) {
 
         Menu fileMenu = new Menu("File");
