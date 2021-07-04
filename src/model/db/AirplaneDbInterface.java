@@ -7,6 +7,7 @@ package model.db;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import model.bo.Flight;
@@ -40,8 +41,11 @@ public interface AirplaneDbInterface {
 
     public void addPassenger(String userName, String password, String firstName, String lastName, String address, String telNo, String email) throws IOException, SQLException;
     
+    public void addTicketInfo(int profileId, int flightId, LocalDate date, String status) throws IOException, SQLException;; 
+    
     public List<Flight> getAllFlights() throws SQLException, IOException;
     
     public List<Passenger> getAllPassengers() throws SQLException, IOException;
 
+    public int getLoggedInPassengerId(String userName) throws SQLException, IOException;
 }

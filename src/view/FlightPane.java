@@ -5,9 +5,12 @@
  */
 package view;
 
+import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -17,16 +20,21 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.input.MouseButton;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -35,8 +43,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 import model.bo.Flight;
+import model.bo.Passenger;
+import model.bo.Ticket;
 import model.db.AirplaneMySQLDb;
 
 /**
@@ -48,7 +59,10 @@ public class FlightPane extends VBox {
     private MenuBar menuBar;
     private TableView<Flight> flightTable;
     private ObservableList<Flight> flightsInTable;
-
+    private TextField userTextField;
+    private PasswordField pwBox;
+    private Label signInAsLabel;
+    
     public FlightPane(AirplaneMySQLDb airplaneDb) {
         final Controller controller = new Controller(airplaneDb, this);
         this.init(controller);
@@ -56,17 +70,28 @@ public class FlightPane extends VBox {
 
     private void init(Controller controller) {
         flightsInTable = FXCollections.observableArrayList();
-        initFlightTable();
+        userTextField = new TextField();
+        pwBox = new PasswordField();
         initMenus(controller);
+        initFlightTable(controller);
+
+        signInAsLabel = new Label();
+        signInAsLabel.setFont(new Font("Helvetica", 20));
+        FlowPane bottomPane = new FlowPane();
+        bottomPane.setHgap(10);
+        bottomPane.setPadding(new Insets(10, 10, 10, 10));
+        bottomPane.getChildren().addAll(signInAsLabel);
+
         BorderPane mainPane = new BorderPane();
         mainPane.setCenter(flightTable);
-        //mainPane.setBottom(bottomPane);
+        mainPane.setBottom(bottomPane);
         mainPane.setPadding(new Insets(10, 10, 10, 10));
+
         this.getChildren().addAll(menuBar, mainPane);
         VBox.setVgrow(mainPane, Priority.ALWAYS);
     }
 
-    private void initFlightTable() {
+    private void initFlightTable(Controller controller) {
         flightTable = new TableView<>();
         flightTable.setEditable(false);
 
@@ -99,6 +124,29 @@ public class FlightPane extends VBox {
         durationCol.setCellValueFactory(new PropertyValueFactory<>("duration"));
         totalSeatsCol.setCellValueFactory(new PropertyValueFactory<>("totalSeats"));
         flightTable.setItems(flightsInTable);
+
+        flightTable.setRowFactory(tv -> {
+            TableRow<Flight> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (event.getClickCount() == 2 && (!row.isEmpty()) && event.getButton() == MouseButton.PRIMARY) {
+                    if (controller.isLoginSuccess(userTextField.getText(), pwBox.getText())) {
+                        Optional<ButtonType> result = showAlertAndConf("Do you want to book this?", Alert.AlertType.CONFIRMATION);
+                        if (!result.isPresent() || result.get() == ButtonType.OK) {
+                            Flight rowData = row.getItem();
+                            Ticket ticket = new Ticket.TicketBuilder(rowData.getFlightId(),  controller.getLoggedInPassengerId(userTextField.getText()))
+                                    .departureTime(rowData.getDepartureTime().toLocalDate())
+                                    .status("Purchased")
+                                    .build();
+                            controller.registerTicket(ticket);
+                            System.out.println(ticket);
+                        }
+                    } else {
+                        showAlertAndWait("You need to login!", Alert.AlertType.ERROR);
+                    }
+                }
+            });
+            return row;
+        });
     }
 
     private void initMenus(Controller controller) {
@@ -123,10 +171,13 @@ public class FlightPane extends VBox {
 
         Menu accountMenu = new Menu("Account");
         MenuItem loginItem = new MenuItem("Login");
-        MenuItem signInItem = new MenuItem("Sign up");
+        MenuItem signUpItem = new MenuItem("Sign up");
         MenuItem reservationItem = new MenuItem("Reservations");
+        MenuItem signOutItem = new MenuItem("Sign out");
         reservationItem.setVisible(false);
-        accountMenu.getItems().addAll(loginItem, signInItem, reservationItem);
+        signOutItem.setVisible(false);
+
+        accountMenu.getItems().addAll(loginItem, signUpItem, reservationItem, signOutItem);
 
         connectItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -143,7 +194,7 @@ public class FlightPane extends VBox {
             }
         });
 
-        signInItem.setOnAction(new EventHandler<ActionEvent>() {
+        signUpItem.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 initSignInWindow(controller);
@@ -154,6 +205,19 @@ public class FlightPane extends VBox {
             @Override
             public void handle(ActionEvent event) {
                 initLoginWindow(controller);
+            }
+        });
+
+        signOutItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                menuBar.getMenus().get(3).getItems().get(0).setVisible(true); //Login unseen
+                menuBar.getMenus().get(3).getItems().get(1).setVisible(true); //Sign up unseen
+                menuBar.getMenus().get(3).getItems().get(2).setVisible(false); //Reservation show
+                menuBar.getMenus().get(3).getItems().get(3).setVisible(false); //Sign out show
+                signInAsLabel.setText("");
+                userTextField.clear();
+                pwBox.clear();
             }
         });
 
@@ -172,6 +236,12 @@ public class FlightPane extends VBox {
         alert.showAndWait();
     }
 
+    protected Optional<ButtonType> showAlertAndConf(String msg, Alert.AlertType type) {
+        // types: INFORMATION, WARNING et c.
+        Alert alert = new Alert(type, msg);
+        return alert.showAndWait();
+    }
+
     private void initLoginWindow(Controller controller) {
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
@@ -186,13 +256,11 @@ public class FlightPane extends VBox {
         Label userName = new Label("User Name:");
         grid.add(userName, 0, 1);
 
-        TextField userTextField = new TextField();
         grid.add(userTextField, 1, 1);
 
         Label pw = new Label("Password:");
         grid.add(pw, 0, 2);
 
-        PasswordField pwBox = new PasswordField();
         grid.add(pwBox, 1, 2);
 
         Button btn = new Button("Login");
@@ -204,27 +272,27 @@ public class FlightPane extends VBox {
         final Text actiontarget = new Text();
         grid.add(actiontarget, 1, 6);
 
-
         Scene scene = new Scene(grid, 300, 275);
         Stage stage = new Stage();
         stage.setScene(scene);
         stage.show();
         stage.setResizable(false);
-        
-        
+
         btn.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent e) {
-                
-                if(controller.isLoginSuccess(userTextField.getText(), pwBox.getText())){
+                if (controller.isLoginSuccess(userTextField.getText(), pwBox.getText())) {
                     showAlertAndWait("Welcome " + userTextField.getText(), Alert.AlertType.INFORMATION);
+                    signInAsLabel.setText("Signed in as: " + userTextField.getText());
                     menuBar.getMenus().get(3).getItems().get(0).setVisible(false); //Login unseen
                     menuBar.getMenus().get(3).getItems().get(1).setVisible(false); //Sign up unseen
                     menuBar.getMenus().get(3).getItems().get(2).setVisible(true); //Reservation show
+                    menuBar.getMenus().get(3).getItems().get(3).setVisible(true); //Sign out show 
                     stage.close();
-                }else{
-                    //Fix later
+                } else {
+                    userTextField.clear();
+                    pwBox.clear();
                     actiontarget.setFill(Color.FIREBRICK);
                     actiontarget.setText("User name or password is incorrect");
                 }
@@ -233,6 +301,8 @@ public class FlightPane extends VBox {
     }
 
     private void initSignInWindow(Controller controller) {
+        userTextField.clear();
+        pwBox.clear();
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
         grid.setHgap(10);
@@ -246,13 +316,11 @@ public class FlightPane extends VBox {
         Label userName = new Label("User name (20 characters):");
         grid.add(userName, 0, 1);
 
-        TextField userTextField = new TextField();
         grid.add(userTextField, 1, 1);
 
         Label pw = new Label("Password (20 characters):");
         grid.add(pw, 0, 2);
 
-        PasswordField pwBox = new PasswordField();
         grid.add(pwBox, 1, 2);
 
         Label firstName = new Label("First name (20 characters):");
@@ -302,10 +370,10 @@ public class FlightPane extends VBox {
 
                 //Fix later
                 if (hasMoreThan20Chars(userTextField, pwBox, firstNameTextField, lastNameTextField, addressTextField, telNoTextField, emailTextField)) {
-                    
+
                     actiontarget.setFill(Color.FIREBRICK);
                     actiontarget.setText("You can't add more than 20 characters!");
-                }else{
+                } else {
                     String userName = userTextField.getText();
                     String password = pwBox.getText();
                     String firstName = firstNameTextField.getText();
@@ -313,7 +381,7 @@ public class FlightPane extends VBox {
                     String address = addressTextField.getText();
                     String telNo = telNoTextField.getText();
                     String email = emailTextField.getText();
-                    
+
                     List<String> result = new ArrayList<>();
                     result.add(userName);
                     result.add(password);
@@ -323,6 +391,14 @@ public class FlightPane extends VBox {
                     result.add(telNo);
                     result.add(email);
                     controller.registerPassenger(result);
+                    userTextField.clear();
+                    pwBox.clear();
+                    firstNameTextField.clear();
+                    lastNameTextField.clear();
+                    addressTextField.clear();
+                    telNoTextField.clear();
+                    emailTextField.clear();
+                    showAlertAndWait("Success", Alert.AlertType.INFORMATION);
                 }
             }
         });
@@ -334,14 +410,14 @@ public class FlightPane extends VBox {
         stage.setResizable(false);
     }
 
-    private boolean hasMoreThan20Chars(TextField userTextField, 
+    private boolean hasMoreThan20Chars(TextField userTextField,
             PasswordField pwBox, TextField firstNameTextField,
-            TextField lastNameTextField, TextField addressTextField, 
+            TextField lastNameTextField, TextField addressTextField,
             TextField telNoTextField, TextField emailTextField) {
-        
-        return userTextField.getText().length() > 20 
-                || pwBox.getText().length() > 20 
-                || firstNameTextField.getText().length() > 20 
+
+        return userTextField.getText().length() > 20
+                || pwBox.getText().length() > 20
+                || firstNameTextField.getText().length() > 20
                 || lastNameTextField.getText().length() > 20
                 || addressTextField.getText().length() > 20
                 || telNoTextField.getText().length() > 20
