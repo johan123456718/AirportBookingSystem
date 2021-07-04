@@ -11,7 +11,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -140,6 +140,28 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
             }
         }
     }
+    
+    @Override
+    public int getLoggedInPassengerId(String userName) throws SQLException, IOException {
+        String sql = "SELECT profile_id from PASSENGER_PROFILE where username = " + '"' + userName + '"';
+        PreparedStatement selectAll = null;
+        ResultSet rs = null;
+        try {
+            selectAll = con.prepareStatement(sql);
+            rs = selectAll.executeQuery();
+            while(rs.next()){
+                return rs.getInt("profile_id");
+            }
+        } finally {
+            if (selectAll != null) {
+                selectAll.close();
+            }
+            if (rs != null) {
+                rs.close();
+            }
+        }
+        return 0;
+    }
 
     @Override
     public void addPassenger(String userName, String password, String firstName, String lastName, String address, String telNo, String email) throws IOException, SQLException {
@@ -246,5 +268,37 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
             }
         }
         return result;
+    }
+
+    @Override
+    public void addTicketInfo(int profileId, int flightId, LocalDate date, String status) throws IOException, SQLException {
+        PreparedStatement insertPassenger = null;
+        ResultSet rs = null;
+        try {
+            con.setAutoCommit(false);
+
+            String sqlQuery = "INSERT INTO TICKET_INFO "
+                    + "(profile_id, flight_id, flight_departure_date, status) "
+                    + "VALUES (?, ?, ?, ?)";
+
+            insertPassenger = con.prepareStatement(sqlQuery);
+            insertPassenger.setInt(1, profileId);
+            insertPassenger.setInt(2, flightId);
+            insertPassenger.setObject(3, date);
+            insertPassenger.setString(4, status);
+            insertPassenger.execute();
+            con.commit();
+        } catch (SQLException e) {
+            con.rollback();
+            throw e;
+        } finally {
+            if (insertPassenger != null) {
+                insertPassenger.close();
+            }
+            if (rs != null) {
+                rs.close();
+            }
+            con.setAutoCommit(true);
+        }
     }
 }

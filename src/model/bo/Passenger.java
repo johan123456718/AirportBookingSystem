@@ -10,7 +10,7 @@ package model.bo;
  * @author Johan C
  */
 public class Passenger {
-
+    private final int profileId;
     private final String userName;
     private final String password;
     private final String firstName;
@@ -20,6 +20,7 @@ public class Passenger {
     private final String email;
 
     public Passenger(PassengerBuilder builder) {
+        this.profileId = builder.profileId;
         this.userName = builder.userName;
         this.password = builder.password;
         this.firstName = builder.firstName;
@@ -27,6 +28,10 @@ public class Passenger {
         this.address = builder.address;
         this.telNo = builder.telNo;
         this.email = builder.email;
+    }
+    
+    public int getProfileId(){
+        return profileId;
     }
 
     /**
@@ -81,7 +86,7 @@ public class Passenger {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("Passenger: ").append(this.userName).append(", ").append(this.password).append(", ").append(this.firstName).append(", ").append(this.lastName).append(", ")
+        sb.append("Passenger: ").append(this.profileId).append(", ").append(this.userName).append(", ").append(this.password).append(", ").append(this.firstName).append(", ").append(this.lastName).append(", ")
                 .append(this.address).append(", ").append(this.telNo).append(", ").append(this.email);
         return sb.toString();
     }
@@ -90,6 +95,7 @@ public class Passenger {
 
         private final String userName;
         private final String password;
+        private int profileId;
         private String firstName;
         private String lastName;
         private String address;

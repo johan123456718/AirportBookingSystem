@@ -7,14 +7,12 @@ package view;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.control.Alert;
 import model.db.AirplaneDbInterface;
 import static javafx.scene.control.Alert.AlertType.*;
 import model.bo.Flight;
 import model.bo.Passenger;
+import model.bo.Ticket;
 
 /**
  *
@@ -63,7 +61,7 @@ public class Controller {
                     return true;
                 }
             }
-        } catch (IOException | SQLException e) {
+        } catch (IOException | SQLException | NullPointerException e) {
             javafx.application.Platform.runLater(
                     new Runnable() {
                 @Override
@@ -73,6 +71,21 @@ public class Controller {
             });
         }
         return false;
+    }
+    
+    protected int getLoggedInPassengerId(String userName) {
+        try {
+            return airplaneDb.getLoggedInPassengerId(userName);
+        } catch (IOException | SQLException | NullPointerException e) {
+            javafx.application.Platform.runLater(
+                    new Runnable() {
+                @Override
+                public void run() {
+                    flightView.showAlertAndWait("Could not find any passengers in database.", ERROR);
+                }
+            });
+        }
+        return 0;
     }
 
     protected void registerPassenger(List<String> list) {
@@ -87,6 +100,25 @@ public class Controller {
                         @Override
                         public void run() {
                             flightView.showAlertAndWait("Could not add passenger.", ERROR);
+                        }
+                    });
+                }
+            }
+        }.start();
+    }
+    
+    protected void registerTicket(Ticket ticket) {
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    airplaneDb.addTicketInfo(ticket.getProfileId(), ticket.getFlightId(), ticket.getDepartureTime(), ticket.getStatus());
+                } catch (IOException | SQLException e) {
+                    javafx.application.Platform.runLater(
+                            new Runnable() {
+                        @Override
+                        public void run() {
+                            flightView.showAlertAndWait("Could not add ticket.", ERROR);
                         }
                     });
                 }
