@@ -58,11 +58,14 @@ public class FlightPane extends VBox {
 
     private MenuBar menuBar;
     private TableView<Flight> flightTable;
+    private TableView<Ticket> ticketTable;
     private ObservableList<Flight> flightsInTable;
+    private ObservableList<Ticket> ticketsInTable;
     private TextField userTextField;
     private PasswordField pwBox;
     private Label signInAsLabel;
-    
+    private BorderPane mainPane;
+
     public FlightPane(AirplaneMySQLDb airplaneDb) {
         final Controller controller = new Controller(airplaneDb, this);
         this.init(controller);
@@ -70,6 +73,10 @@ public class FlightPane extends VBox {
 
     private void init(Controller controller) {
         flightsInTable = FXCollections.observableArrayList();
+        ticketsInTable = FXCollections.observableArrayList();
+        
+        flightTable = new TableView<>();
+        ticketTable = new TableView<>();
         userTextField = new TextField();
         pwBox = new PasswordField();
         initMenus(controller);
@@ -82,7 +89,7 @@ public class FlightPane extends VBox {
         bottomPane.setPadding(new Insets(10, 10, 10, 10));
         bottomPane.getChildren().addAll(signInAsLabel);
 
-        BorderPane mainPane = new BorderPane();
+        mainPane = new BorderPane();
         mainPane.setCenter(flightTable);
         mainPane.setBottom(bottomPane);
         mainPane.setPadding(new Insets(10, 10, 10, 10));
@@ -92,7 +99,7 @@ public class FlightPane extends VBox {
     }
 
     private void initFlightTable(Controller controller) {
-        flightTable = new TableView<>();
+        
         flightTable.setEditable(false);
 
         TableColumn<Flight, Integer> flightIdCol = new TableColumn<>("Flight_id");
@@ -194,7 +201,6 @@ public class FlightPane extends VBox {
             @Override
             public void handle(ActionEvent event) {
                 controller.disconnect();
-                flightsInTable.clear();
             }
         });
 
@@ -222,16 +228,59 @@ public class FlightPane extends VBox {
                 signInAsLabel.setText("");
                 userTextField.clear();
                 pwBox.clear();
+                ticketTable.getColumns().clear();
             }
         });
-
+        
+        reservationItem.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                flightTable.getColumns().clear();
+                initTicketInfo(controller);
+            }
+        });
+        
         menuBar = new MenuBar();
         menuBar.getMenus().addAll(fileMenu, searchMenu, manageMenu, accountMenu);
+    }
+    
+    private void initTicketInfo(Controller controller){
+        ticketTable.setEditable(false);
+        
+        TableColumn<Ticket, Integer> flightId = new TableColumn<>("Flight_id");
+        TableColumn<Ticket, Integer> profileId = new TableColumn<>("Profile_id");
+        TableColumn<Ticket, LocalDate> flight_departure_date = new TableColumn<>("Flight_departure_date");
+        TableColumn<Ticket, String> status = new TableColumn<>("Status");
+
+        ticketTable.getColumns().addAll(flightId, profileId, flight_departure_date, status);
+        
+        flightId.prefWidthProperty().bind(ticketTable.widthProperty().multiply(0.25));
+        profileId.prefWidthProperty().bind(ticketTable.widthProperty().multiply(0.25));
+        flight_departure_date.prefWidthProperty().bind(ticketTable.widthProperty().multiply(0.25));
+        status.prefWidthProperty().bind(ticketTable.widthProperty().multiply(0.25));
+        
+        flightId.setCellValueFactory(new PropertyValueFactory<>("flightId"));
+        profileId.setCellValueFactory(new PropertyValueFactory<>("profileId"));
+        flight_departure_date.setCellValueFactory(new PropertyValueFactory<>("departureTime"));
+        status.setCellValueFactory(new PropertyValueFactory<>("status"));
+        controller.updateTableFlightToTicket(controller.getLoggedInPassengerId(userTextField.getText()));
+        ticketTable.setItems(ticketsInTable);
+        mainPane.setCenter(ticketTable);
     }
 
     public void displayFlights(List<Flight> flights) {
         flightsInTable.clear();
         flightsInTable.addAll(flights);
+    }
+    
+    public void displayTicket(List<Ticket> tickets){
+        ticketsInTable.clear();
+        ticketsInTable.addAll(tickets);
+    }
+    
+    public void clearTable(){
+        flightsInTable.clear();
+        ticketsInTable.clear();
     }
 
     protected void showAlertAndWait(String msg, Alert.AlertType type) {

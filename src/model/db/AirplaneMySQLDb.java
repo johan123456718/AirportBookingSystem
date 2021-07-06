@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import model.bo.Flight;
 import model.bo.Passenger;
+import model.bo.Ticket;
 
 /**
  *
@@ -130,6 +131,28 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
             selectAll = con.prepareStatement(sql);
             rs = selectAll.executeQuery();
             result = convertToPassengers(rs);
+            return result;
+        } finally {
+            if (selectAll != null) {
+                selectAll.close();
+            }
+            if (rs != null) {
+                rs.close();
+            }
+        }
+    }
+    
+    @Override
+    public List<Ticket> getAllTicketsToOwner(int profileId) throws SQLException, IOException {
+       List<Ticket> result = new ArrayList<>();
+
+        String sql = "select * from TICKET_INFO where profile_id =" + '"' + profileId + '"'; 
+        PreparedStatement selectAll = null;
+        ResultSet rs = null;
+        try {
+            selectAll = con.prepareStatement(sql);
+            rs = selectAll.executeQuery();
+            result = convertToTickets(rs);
             return result;
         } finally {
             if (selectAll != null) {
@@ -264,6 +287,34 @@ public class AirplaneMySQLDb implements AirplaneDbInterface {
                         .address(address)
                         .telNo(telNo)
                         .email(email)
+                        .build());
+            }
+        }
+        return result;
+    }
+    
+    
+    private List<Ticket> convertToTickets(ResultSet rs) throws SQLException {
+        List<Ticket> result = new ArrayList<>();
+
+        while (rs.next()) {
+            int flightId = rs.getInt("flight_id");
+            int profileId = rs.getInt("profile_id");
+            LocalDate date = rs.getObject("flight_departure_date", LocalDate.class);
+            String status = rs.getString("status");
+
+            boolean doPassengerExist = false;
+
+            if (result.size() > 0) {
+                if (result.get(result.size() - 1).getFlightId() == flightId) {
+                    doPassengerExist = true;
+                }
+            }
+
+            if (!doPassengerExist) {
+                result.add(new Ticket.TicketBuilder(flightId, profileId)
+                        .departureTime(date)
+                        .status(status)
                         .build());
             }
         }
