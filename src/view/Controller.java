@@ -53,6 +53,32 @@ public class Controller {
             }
         }.start();
     }
+    
+    protected void updateTableFlightToTicket(int profileId){
+        new Thread() {
+            @Override
+            public void run() {
+                try {
+                    final List<Ticket> result = airplaneDb.getAllTicketsToOwner(profileId);
+                    javafx.application.Platform.runLater(
+                            new Runnable() {
+                        @Override
+                        public void run() {
+                            flightView.displayTicket(result);
+                        }
+                    });
+                } catch (IOException | SQLException e) {
+                    javafx.application.Platform.runLater(
+                            new Runnable() {
+                        @Override
+                        public void run() {
+                            flightView.showAlertAndWait("Could not connect to database.", ERROR);
+                        }
+                    });
+                }
+            }
+        }.start();
+    }
 
     protected boolean isLoginSuccess(String userName, String password) {
         try {
@@ -132,6 +158,7 @@ public class Controller {
             public void run() {
                 try {
                     airplaneDb.disconnect();
+                    flightView.clearTable();
                 } catch (IOException | SQLException e) {
 
                 }

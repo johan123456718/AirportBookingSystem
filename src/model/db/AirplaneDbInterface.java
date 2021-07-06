@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import model.bo.Flight;
 import model.bo.Passenger;
+import model.bo.Ticket;
 
 /**
  *
@@ -46,6 +47,8 @@ public interface AirplaneDbInterface {
     public List<Flight> getAllFlights() throws SQLException, IOException;
     
     public List<Passenger> getAllPassengers() throws SQLException, IOException;
+    
+    public List<Ticket> getAllTicketsToOwner(int profileId) throws SQLException, IOException;
 
     public int getLoggedInPassengerId(String userName) throws SQLException, IOException;
 }
